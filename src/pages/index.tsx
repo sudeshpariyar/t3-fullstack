@@ -5,6 +5,7 @@ import PostWizzard from "~/components/PostWizzard";
 import { type RouterOutputs, api } from "~/utils/api";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import Loading from "~/components/Loading";
 
 dayjs.extend(relativeTime);
 
@@ -34,15 +35,26 @@ const PostView = ({ postAndAuthor }: { postAndAuthor: PostWithUser }) => {
   );
 };
 
+const Feed = () => {
+  const { data, isLoading: postLoading } = api.post.getAll.useQuery();
+
+  if (postLoading) return <Loading />;
+  if (!data) return <div>Something went wrong</div>;
+
+  return (
+    <div>
+      {data.map((postData) => (
+        <PostView postAndAuthor={postData} key={postData.post.id} />
+      ))}
+    </div>
+  );
+};
+
 export default function Home() {
-  const user = useUser();
-  const { data, isLoading } = api.post.getAll.useQuery();
-  if (isLoading) {
-    return <div>Loading....</div>;
-  }
-  if (!data) {
-    return <div>Something went wrong...</div>;
-  }
+  const { isLoaded: userLoaded, isSignedIn } = useUser();
+  api.post.getAll.useQuery();
+
+  if (!userLoaded) return <div />;
 
   return (
     <>
@@ -54,7 +66,7 @@ export default function Home() {
       <main className="flex  h-screen justify-center">
         <div className="w-full border-x border-slate-400 md:max-w-2xl">
           <div className="flex border-b border-slate-400 p-4">
-            {user.isSignedIn ? (
+            {isSignedIn ? (
               <PostWizzard />
             ) : (
               <div className="flex justify-center">
@@ -64,11 +76,7 @@ export default function Home() {
               </div>
             )}
           </div>
-          <div>
-            {data.map((postData) => (
-              <PostView postAndAuthor={postData} key={postData.post.id} />
-            ))}
-          </div>
+          <Feed />
         </div>
       </main>
     </>
